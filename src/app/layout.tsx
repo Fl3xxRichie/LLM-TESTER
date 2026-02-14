@@ -5,8 +5,11 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'LLM Model Tester',
-  description: 'Test API keys for OpenAI, Claude, and Gemini',
+  title: 'LLM Model Tester | Verify API Keys Instantly',
+  description: 'Secure, local-only tool to validate API keys for OpenAI, Claude, Gemini, and Grok.',
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧪</text></svg>',
+  },
 }
 
 export default function RootLayout({

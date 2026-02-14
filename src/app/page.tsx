@@ -25,9 +25,7 @@ export default function Home() {
             © 2026 LLM Tester. Secure, local-only API testing.
           </div>
           <div className="flex gap-8 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-white transition-colors">Documentation</a>
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/FL3XXRICHIE/LLM-TESTER" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>
         </div>
       </footer>
