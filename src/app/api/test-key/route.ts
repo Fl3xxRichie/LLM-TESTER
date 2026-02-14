@@ -130,6 +130,51 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Groq ─────────────────────────────────────────────────
+    else if (provider === 'groq') {
+      const resp = await fetchWithTimeout('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json = await safeJson(resp);
+      if (resp.ok) {
+        const modelCount = json?.data?.length ?? '?';
+        status = 'ACTIVE';
+        details = `Authenticated — ${modelCount} models available`;
+      } else {
+        details = extractError(json, resp);
+      }
+    }
+
+    // ── Mistral ──────────────────────────────────────────────
+    else if (provider === 'mistral') {
+      const resp = await fetchWithTimeout('https://api.mistral.ai/v1/models', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json = await safeJson(resp);
+      if (resp.ok) {
+        const modelCount = json?.data?.length ?? '?';
+        status = 'ACTIVE';
+        details = `Authenticated — ${modelCount} models available`;
+      } else {
+        details = extractError(json, resp);
+      }
+    }
+
+    // ── DeepSeek ─────────────────────────────────────────────
+    else if (provider === 'deepseek') {
+      const resp = await fetchWithTimeout('https://api.deepseek.com/models', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json = await safeJson(resp);
+      if (resp.ok) {
+        const modelCount = json?.data?.length ?? '?';
+        status = 'ACTIVE';
+        details = `Authenticated — ${modelCount} models available`;
+      } else {
+        details = extractError(json, resp);
+      }
+    }
+
     return NextResponse.json({ status, details });
   } catch (err: any) {
     const message =

@@ -1,7 +1,7 @@
 /**
  * Detects the provider of an API key based on known patterns.
  */
-export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' | 'grok' | 'unknown' {
+export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'unknown' {
   const trimmedKey = key.trim();
 
   // Anthropic: ALWAYS starts with sk-ant-
@@ -19,6 +19,11 @@ export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' |
   // Gemini: Starts with AIza
   if (trimmedKey.startsWith('AIza')) {
     return 'gemini';
+  }
+
+  // Groq: Starts with gsk_
+  if (trimmedKey.startsWith('gsk_')) {
+    return 'groq';
   }
 
   // Grok: Starts with xai-

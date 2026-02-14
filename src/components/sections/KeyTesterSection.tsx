@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { CheckCircle, XCircle, Loader2, UploadCloud, Clipboard, Download, Trash2, AlertCircle } from 'lucide-react';
+import { CheckCircle, Loader2, UploadCloud, Clipboard, Download, Trash2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn, detectProvider, maskKey, downloadTxtFile } from '@/lib/utils';
+import { ProviderLogo } from '@/components/ui/ProviderLogo';
 
 interface KeyResult {
+  id: string; // Unique ID for React keys
   key: string;
-  provider: string;
+  provider: 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'unknown';
   status: 'IDLE' | 'TESTING' | 'ACTIVE' | 'DEAD';
   details?: string;
 }
@@ -28,7 +30,6 @@ export default function KeyTesterSection() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
-        // Append to existing keys or replace? Let's append with a newline
         setInputKeys((prev) => (prev ? `${prev}\n${text}` : text));
       }
     };
@@ -57,9 +58,8 @@ export default function KeyTesterSection() {
     const lines = inputKeys.split('\n').map(k => k.trim()).filter(Boolean);
     if (lines.length === 0) return;
 
-    // Reset results and start fresh or append?
-    // Let's replace results to match the current input exactly.
-    const initialResults: KeyResult[] = lines.map(k => ({
+    const initialResults: KeyResult[] = lines.map((k, idx) => ({
+      id: `${Date.now()}-${idx}`,
       key: k,
       provider: detectProvider(k),
       status: 'IDLE'
@@ -68,58 +68,71 @@ export default function KeyTesterSection() {
     setResults(initialResults);
     setIsTesting(true);
 
-    // Process in parallel with a concurrency limit? Or simple serial for now?
-    // Serial is safer for limiting rate limits on our own backend if we had one.
-    // Client-side loop is fine for reasonable batches.
+    // Run all tests
     for (let i = 0; i < initialResults.length; i++) {
-      // Mark current as testing
-      setResults(prev => {
-        const next = [...prev];
-        next[i] = { ...next[i], status: 'TESTING' };
-        return next;
-      });
-
-      try {
-        const item = initialResults[i];
-        // If provider is unknown, skip network call
-        if (item.provider === 'unknown') {
-          setResults(prev => {
-            const next = [...prev];
-            next[i] = { ...next[i], status: 'DEAD', details: 'Unknown provider format' };
-            return next;
-          });
-          continue;
-        }
-
-        const resp = await fetch('/api/test-key', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: item.key, provider: item.provider }),
-        });
-
-        let data;
-        try {
-          data = await resp.json();
-        } catch (err) {
-          data = { status: 'DEAD', details: `Invalid JSON from server: ${resp.statusText}` };
-        }
-
-        setResults(prev => {
-          const next = [...prev];
-          next[i] = { ...next[i], status: data.status, details: data.details };
-          return next;
-        });
-
-      } catch (e: any) {
-        setResults(prev => {
-          const next = [...prev];
-          next[i] = { ...next[i], status: 'DEAD', details: 'Network error (check console)' };
-          return next;
-        });
-      }
+      await testSingleKey(i, initialResults[i]);
     }
 
     setIsTesting(false);
+  };
+
+  const testSingleKey = async (index: number, item: KeyResult) => {
+    // Mark as testing
+    setResults(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], status: 'TESTING', details: 'Validating...' };
+      return next;
+    });
+
+    try {
+      if (item.provider === 'unknown') {
+        setResults(prev => {
+          const next = [...prev];
+          next[index] = { ...next[index], status: 'DEAD', details: 'Unknown provider (Select manually)' };
+          return next;
+        });
+        return;
+      }
+
+      const resp = await fetch('/api/test-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: item.key, provider: item.provider }),
+      });
+
+      let data;
+      try {
+        data = await resp.json();
+      } catch (err) {
+        data = { status: 'DEAD', details: `Invalid JSON: ${resp.statusText}` };
+      }
+
+      setResults(prev => {
+        const next = [...prev];
+        next[index] = { ...next[index], status: data.status, details: data.details };
+        return next;
+      });
+
+    } catch (e: any) {
+      setResults(prev => {
+        const next = [...prev];
+        next[index] = { ...next[index], status: 'DEAD', details: 'Network error' };
+        return next;
+      });
+    }
+  };
+
+  const updateProvider = (index: number, newProvider: string) => {
+    setResults(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], provider: newProvider as any, status: 'IDLE', details: 'Ready to re-test' };
+      return next;
+    });
+  };
+
+  const handleRetest = async (index: number) => {
+    if (isTesting) return; // Prevent interference
+    await testSingleKey(index, results[index]);
   };
 
   const clearAll = () => {
@@ -133,7 +146,7 @@ export default function KeyTesterSection() {
       <div className="text-center mb-12 animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Validate Your LLM API Keys</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-          Instant validation for OpenAI, Anthropic, Gemini, and Grok.
+          Instant validation for OpenAI, Anthropic, Gemini, Groq, Mistral, and DeepSeek.
           <br /><span className="opacity-70 text-sm">Your keys are processed in-memory and never stored.</span>
         </p>
       </div>
@@ -145,7 +158,7 @@ export default function KeyTesterSection() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <textarea
               className="w-full h-64 bg-black/40 border border-white/10 rounded-xl p-6 font-mono text-sm focus:border-secondary focus:ring-1 focus:ring-secondary/50 transition-all outline-none resize-none placeholder:text-white/20"
-              placeholder="sk-proj-12345...&#10;sk-ant-api03...&#10;AIzaSy..."
+              placeholder="sk-proj-12345...&#10;gsk_...&#10;AIzaSy..."
               value={inputKeys}
               onChange={(e) => setInputKeys(e.target.value)}
               spellCheck={false}
@@ -242,24 +255,41 @@ export default function KeyTesterSection() {
           </div>
 
           {/* Table */}
-          <div className="bg-black/40 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[600px]">
+          <div className="bg-black/40 border border-white/10 rounded-xl overflow-visible shadow-2xl pb-16">
+            <div className="overflow-x-auto overflow-y-visible">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground/70">
                   <tr>
-                    <th className="px-6 py-4 font-semibold w-32">Provider</th>
+                    <th className="px-6 py-4 font-semibold w-48">Provider</th>
                     <th className="px-6 py-4 font-semibold w-48">Key Mask</th>
                     <th className="px-6 py-4 font-semibold w-32">Status</th>
                     <th className="px-6 py-4 font-semibold">Details</th>
+                    <th className="px-6 py-4 font-semibold w-24">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-sm">
                   {results.map((res, i) => (
-                    <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
+                    <tr key={res.id} className="group hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <ProviderIcon provider={res.provider} />
-                          <span className="capitalize font-medium">{res.provider}</span>
+                        <div className="flex items-center gap-3">
+                          <ProviderLogo provider={res.provider} className="w-6 h-6 shrink-0" />
+                          <div className="relative">
+                            <select
+                              value={res.provider}
+                              onChange={(e) => updateProvider(i, e.target.value)}
+                              className="appearance-none bg-transparent border-none text-white font-medium focus:ring-0 cursor-pointer pr-6 py-1 hover:text-secondary transition-colors capitalize"
+                            >
+                              <option value="openai" className="bg-[#1e1e1e]">OpenAI</option>
+                              <option value="anthropic" className="bg-[#1e1e1e]">Anthropic</option>
+                              <option value="gemini" className="bg-[#1e1e1e]">Gemini</option>
+                              <option value="grok" className="bg-[#1e1e1e]">Grok</option>
+                              <option value="groq" className="bg-[#1e1e1e]">Groq</option>
+                              <option value="mistral" className="bg-[#1e1e1e]">Mistral</option>
+                              <option value="deepseek" className="bg-[#1e1e1e]">DeepSeek</option>
+                              <option value="unknown" className="bg-[#1e1e1e]">Unknown</option>
+                            </select>
+                            <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 font-mono text-xs opacity-60 select-all">{maskKey(res.key)}</td>
@@ -280,6 +310,16 @@ export default function KeyTesterSection() {
                         ) : (
                           <span className="opacity-20">-</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleRetest(i)}
+                          disabled={res.status === 'TESTING'}
+                          className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors disabled:opacity-50"
+                          title="Re-test this key"
+                        >
+                          <RefreshCw size={16} className={cn(res.status === 'TESTING' && "animate-spin")} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -318,16 +358,4 @@ function StatusBadge({ status }: { status: KeyResult['status'] }) {
       {status}
     </span>
   );
-}
-
-function ProviderIcon({ provider }: { provider: string }) {
-  // Simple colored dots for now, could be replaced with SVGs
-  const colors: Record<string, string> = {
-    openai: "bg-green-500",
-    anthropic: "bg-orange-500",
-    gemini: "bg-blue-500",
-    grok: "bg-white",
-    unknown: "bg-gray-700"
-  };
-  return <div className={cn("w-2 h-2 rounded-full", colors[provider] || colors.unknown)} />;
 }
