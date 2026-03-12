@@ -8,7 +8,7 @@ import { ProviderLogo } from '@/components/ui/ProviderLogo';
 interface KeyResult {
   id: string; // Unique ID for React keys
   key: string;
-  provider: 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'unknown';
+  provider: 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'openrouter' | 'cerebras' | 'unknown';
   status: 'IDLE' | 'TESTING' | 'ACTIVE' | 'DEAD';
   details?: string;
 }
@@ -146,7 +146,7 @@ export default function KeyTesterSection() {
       <div className="text-center mb-12 animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Validate Your LLM API Keys</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-          Instant validation for OpenAI, Anthropic, Gemini, Groq, Mistral, and DeepSeek.
+          Instant validation for OpenAI, Anthropic, Gemini, Grok, Groq, Mistral, DeepSeek, OpenRouter, and Cerebras.
           <br /><span className="opacity-70 text-sm">Your keys are processed in-memory and never stored.</span>
         </p>
       </div>
@@ -286,6 +286,8 @@ export default function KeyTesterSection() {
                               <option value="groq" className="bg-[#1e1e1e]">Groq</option>
                               <option value="mistral" className="bg-[#1e1e1e]">Mistral</option>
                               <option value="deepseek" className="bg-[#1e1e1e]">DeepSeek</option>
+                              <option value="openrouter" className="bg-[#1e1e1e]">OpenRouter</option>
+                              <option value="cerebras" className="bg-[#1e1e1e]">Cerebras</option>
                               <option value="unknown" className="bg-[#1e1e1e]">Unknown</option>
                             </select>
                             <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />

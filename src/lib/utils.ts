@@ -1,7 +1,7 @@
 /**
  * Detects the provider of an API key based on known patterns.
  */
-export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'unknown' {
+export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' | 'grok' | 'groq' | 'mistral' | 'deepseek' | 'openrouter' | 'cerebras' | 'unknown' {
   const trimmedKey = key.trim();
 
   // Anthropic: ALWAYS starts with sk-ant-
@@ -9,9 +9,14 @@ export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' |
     return 'anthropic';
   }
 
+  // OpenRouter: Starts with sk-or-
+  if (trimmedKey.startsWith('sk-or-')) {
+    return 'openrouter';
+  }
+
   // OpenAI: Starts with sk- and usually 40+ chars.
   // Note: 'sk-proj-' is common now, but legacy keys are just sk-...
-  // We check this AFTER Anthropic because Anthropic also starts with sk-
+  // We check this AFTER Anthropic and OpenRouter because they also start with sk-
   if (trimmedKey.startsWith('sk-')) {
     return 'openai';
   }
@@ -31,6 +36,10 @@ export function detectProvider(key: string): 'openai' | 'anthropic' | 'gemini' |
     return 'grok';
   }
 
+  // Cerebras: While it has no standard prefix, some tools use cerebras/ prefix or it might just be a long alphanumeric.
+  // We'll add a simple check if it explicitly starts with something cerebras related, or default to unknown
+  // for now, we won't auto-detect cerebras since there isn't a solid public prefix, but users can manually select it.
+  
   return 'unknown';
 }
 

@@ -175,6 +175,36 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── OpenRouter ───────────────────────────────────────────
+    else if (provider === 'openrouter') {
+      const resp = await fetchWithTimeout('https://openrouter.ai/api/v1/models', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json = await safeJson(resp);
+      if (resp.ok) {
+        const modelCount = json?.data?.length ?? '?';
+        status = 'ACTIVE';
+        details = `Authenticated — ${modelCount} models available`;
+      } else {
+        details = extractError(json, resp);
+      }
+    }
+
+    // ── Cerebras ─────────────────────────────────────────────
+    else if (provider === 'cerebras') {
+      const resp = await fetchWithTimeout('https://api.cerebras.ai/v1/models', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json = await safeJson(resp);
+      if (resp.ok) {
+        const modelCount = json?.data?.length ?? '?';
+        status = 'ACTIVE';
+        details = `Authenticated — ${modelCount} models available`;
+      } else {
+        details = extractError(json, resp);
+      }
+    }
+
     return NextResponse.json({ status, details });
   } catch (err: any) {
     const message =
